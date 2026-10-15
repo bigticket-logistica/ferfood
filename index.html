@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF0F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1016" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FerFood">
+<meta name="description" content="Dale comida a tu perro desde cualquier lugar.">
+<title>FerFood</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Unbounded:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --fondo: #EEF0F4;
+    --superficie: #FFFFFF;
+    --tinta: #15151C;
+    --suave: #6B6E7B;
+    --linea: #E2E4EA;
+    --rosa: #FF4D7E;
+    --perro: #16161B;
+    --perro-borde: #3A3B45;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --fondo: #0F1016;
+      --superficie: #1A1B23;
+      --tinta: #F2F3F7;
+      --suave: #9A9DAB;
+      --linea: #2A2C36;
+      --rosa: #FF5C8A;
+      --perro: #0B0B0F;
+      --perro-borde: #3A3C48;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    min-height: 100dvh;
+    background: var(--fondo);
+    color: var(--tinta);
+    font-family: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  }
+  .app { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; }
+  .marca { font-family: "Unbounded", "Figtree", sans-serif; font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .hoy { color: var(--suave); font-size: 0.95rem; }
+
+  .escena { position: relative; height: 280px; display: flex; align-items: flex-end; justify-content: center; margin-top: 12px; }
+  .perro { width: 210px; height: auto; transform-origin: 50% 100%; }
+  .perro .cuerpo { fill: var(--perro); stroke: var(--perro-borde); stroke-width: 2; }
+  .perro .collar { fill: var(--rosa); }
+  .perro .corazon, .perro .lengua { fill: var(--rosa); }
+  .perro .ojo-corazon, .perro .lengua { display: none; }
+  .perro.feliz .ojo-normal { display: none; }
+  .perro.feliz .ojo-corazon, .perro.feliz .lengua { display: inline; }
+
+  .corazones { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  .flotante { position: absolute; bottom: 150px; width: 22px; height: 22px; opacity: 0; }
+  .flotante svg { width: 100%; height: 100%; fill: var(--rosa); }
+
+  .boton {
+    margin-top: 22px;
+    width: 100%;
+    height: 68px;
+    border: none;
+    border-radius: 999px;
+    background: var(--tinta);
+    color: var(--fondo);
+    font-family: inherit;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .1s ease, opacity .2s ease;
+  }
+  .boton:active:not(:disabled) { transform: scale(.97); }
+  .boton:disabled { opacity: .45; cursor: wait; }
+  .boton:focus-visible { outline: 3px solid var(--rosa); outline-offset: 4px; }
+
+  .estado { min-height: 1.6em; margin-top: 14px; text-align: center; color: var(--suave); font-size: 1rem; }
+  .estado.ok { color: var(--tinta); font-weight: 600; }
+  .estado.error { color: var(--rosa); }
+
+  .historial { margin-top: 26px; background: var(--superficie); border-radius: 20px; padding: 6px 20px; }
+  .historial h2 { font-size: 0.95rem; font-weight: 600; color: var(--suave); padding: 12px 0 4px; }
+  .historial ul { list-style: none; }
+  .historial li { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--linea); }
+  .historial li:first-child { border-top: none; }
+  .historial .servido { color: var(--suave); }
+  .historial .pendiente { color: var(--rosa); font-weight: 500; }
+  .vacio { color: var(--suave); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .perro.salta { animation: salto .7s cubic-bezier(.3,1.6,.5,1); }
+    .flotante { animation: flotar 1.8s ease-out forwards; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flotante { opacity: 0; }
+  }
+  @keyframes salto {
+    0% { transform: translateY(0) scale(1, 1); }
+    25% { transform: translateY(6px) scale(1.04, .94); }
+    55% { transform: translateY(-26px) scale(.98, 1.03); }
+    100% { transform: translateY(0) scale(1, 1); }
+  }
+  @keyframes flotar {
+    0% { opacity: 0; transform: translateY(0) scale(.6); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-150px) scale(1.1); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 class="marca">FerFood</h1>
+    <span class="hoy" id="hoy"></span>
+  </header>
+
+  <div class="escena" aria-hidden="true">
+    <div class="corazones" id="corazones"></div>
+    <svg class="perro" id="perro" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+      <path class="cuerpo" d="M60 240 C62 190 70 150 78 120 L122 120 C130 150 138 190 140 240 Z"/>
+      <rect class="collar" x="70" y="140" width="60" height="10" rx="5"/>
+      <path class="cuerpo" d="M70 52 C52 40 36 50 40 72 C48 66 58 64 68 68 Z"/>
+      <path class="cuerpo" d="M130 52 C148 40 164 50 160 72 C152 66 142 64 132 68 Z"/>
+      <path class="cuerpo" d="M100 30 C70 30 60 60 66 88 C72 118 86 152 91 170 Q100 182 109 170 C114 152 128 118 134 88 C140 60 130 30 100 30 Z"/>
+      <g class="ojo-normal">
+        <ellipse cx="84" cy="88" rx="7" ry="5" fill="#F4F4F7"/>
+        <circle cx="85" cy="88" r="3.4" fill="#15151C"/>
+        <circle cx="86.4" cy="86.6" r="1.1" fill="#FFFFFF"/>
+        <ellipse cx="116" cy="88" rx="7" ry="5" fill="#F4F4F7"/>
+        <circle cx="115" cy="88" r="3.4" fill="#15151C"/>
+        <circle cx="116.4" cy="86.6" r="1.1" fill="#FFFFFF"/>
+      </g>
+      <g class="ojo-corazon">
+        <path class="corazon" transform="translate(84 87) scale(1.1)" d="M0 -2 C-3 -7 -10 -5 -9 0 C-8 4 -3 7 0 10 C3 7 8 4 9 0 C10 -5 3 -7 0 -2 Z"/>
+        <path class="corazon" transform="translate(116 87) scale(1.1)" d="M0 -2 C-3 -7 -10 -5 -9 0 C-8 4 -3 7 0 10 C3 7 8 4 9 0 C10 -5 3 -7 0 -2 Z"/>
+      </g>
+      <ellipse cx="100" cy="166" rx="9" ry="6" fill="#000000"/>
+      <ellipse cx="97" cy="164" rx="2.6" ry="1.5" fill="#55565F"/>
+      <path class="lengua" d="M95 175 Q100 192 105 175 Z"/>
+    </svg>
+  </div>
+
+  <button class="boton" id="boton" type="button">Dar comida</button>
+  <p class="estado" id="estado" role="status" aria-live="polite"></p>
+
+  <section class="historial">
+    <h2>Últimas comidas</h2>
+    <ul id="historial"><li class="vacio">Cargando…</li></ul>
+  </section>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://mgrzipfwdmcphednnarb.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ncnppcGZ3ZG1jcGhlZG5uYXJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTQwMTQsImV4cCI6MjEwNzY3MDAxNH0.otPBvQGWyna9EhZjVA36e0QUaiqSfmIvmS92huoDlv8";
+
+  const encabezados = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  const boton = document.getElementById("boton");
+  const estado = document.getElementById("estado");
+  const perro = document.getElementById("perro");
+  const corazones = document.getElementById("corazones");
+  const CORAZON = '<svg viewBox="-10 -8 20 19"><path d="M0 -2 C-3 -7 -10 -5 -9 0 C-8 4 -3 7 0 10 C3 7 8 4 9 0 C10 -5 3 -7 0 -2 Z"/></svg>';
+  let temporizadorFeliz = null;
+
+  function mostrar(texto, tipo) {
+    estado.textContent = texto;
+    estado.className = "estado" + (tipo ? " " + tipo : "");
+  }
+
+  function hora(fechaTexto) {
+    const f = new Date(fechaTexto);
+    const h = f.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    if (f.toDateString() === new Date().toDateString()) return "Hoy, " + h;
+    return f.toLocaleDateString("es-CL", { day: "numeric", month: "short" }) + ", " + h;
+  }
+
+  function celebrar() {
+    clearTimeout(temporizadorFeliz);
+    perro.classList.remove("salta");
+    void perro.getBoundingClientRect();
+    perro.classList.add("feliz", "salta");
+    for (let i = 0; i < 8; i++) {
+      const c = document.createElement("span");
+      c.className = "flotante";
+      c.innerHTML = CORAZON;
+      c.style.left = (30 + Math.random() * 40) + "%";
+      c.style.animationDelay = (i * 0.12) + "s";
+      const tam = 14 + Math.random() * 16;
+      c.style.width = c.style.height = tam + "px";
+      corazones.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+    temporizadorFeliz = setTimeout(() => perro.classList.remove("feliz", "salta"), 4500);
+  }
+
+  async function cargarHistorial() {
+    const lista = document.getElementById("historial");
+    try {
+      const inicioHoy = new Date();
+      inicioHoy.setHours(0, 0, 0, 0);
+      const [r1, r2] = await Promise.all([
+        fetch(SUPABASE_URL + "/rest/v1/pedidos?select=id,creado,estado&order=id.desc&limit=5", { headers: encabezados }),
+        fetch(SUPABASE_URL + "/rest/v1/pedidos?select=id&estado=eq.servido&creado=gte." + encodeURIComponent(inicioHoy.toISOString()), { headers: encabezados })
+      ]);
+      const filas = await r1.json();
+      const deHoy = await r2.json();
+      const n = deHoy.length;
+      document.getElementById("hoy").textContent = n === 1 ? "1 comida hoy" : n + " comidas hoy";
+
+      if (!filas.length) {
+        lista.innerHTML = '<li class="vacio">Todavía no hay comidas. Aprieta el botón para dar la primera.</li>';
+        return;
+      }
+      lista.innerHTML = filas.map(f =>
+        '<li><span>' + hora(f.creado) + '</span><span class="' + f.estado + '">' +
+        (f.estado === "servido" ? "Servida" : "Pendiente") + '</span></li>'
+      ).join("");
+    } catch (e) {
+      lista.innerHTML = '<li class="vacio">No se pudo cargar el historial. Revisa tu conexión a internet.</li>';
+    }
+  }
+
+  async function darComida() {
+    boton.disabled = true;
+    mostrar("Enviando pedido…");
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/pedidos", {
+        method: "POST",
+        headers: { ...encabezados, "Prefer": "return=representation" },
+        body: "{}"
+      });
+      if (!r.ok) throw new Error("pedido");
+      const [pedido] = await r.json();
+      mostrar("Sirviendo…");
+      cargarHistorial();
+      esperarServido(pedido.id, 0);
+    } catch (e) {
+      mostrar("No se pudo enviar el pedido. Revisa tu conexión e inténtalo de nuevo.", "error");
+      boton.disabled = false;
+    }
+  }
+
+  async function esperarServido(id, intentos) {
+    if (intentos >= 15) {
+      mostrar("El dispensador no respondió. Revisa que esté enchufado y con WiFi.", "error");
+      boton.disabled = false;
+      cargarHistorial();
+      return;
+    }
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/pedidos?id=eq." + id + "&select=estado", { headers: encabezados });
+      const [fila] = await r.json();
+      if (fila && fila.estado === "servido") {
+        mostrar("¡Comida servida!", "ok");
+        celebrar();
+        boton.disabled = false;
+        cargarHistorial();
+        return;
+      }
+    } catch (e) {}
+    setTimeout(() => esperarServido(id, intentos + 1), 1500);
+  }
+
+  boton.addEventListener("click", darComida);
+  cargarHistorial();
+</script>
+</body>
+</html>
